@@ -1,10 +1,9 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <script src="js/face-api.js"></script>
+  <script src="face-api.js"></script>
   <script src="js/commons.js"></script>
   <script src="js/faceDetectionControls.js"></script>
-  <script src="js/imageSelectionControls.js"></script>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.100.2/css/materialize.css">
   <script type="text/javascript" src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
@@ -18,25 +17,8 @@
       <div class="indeterminate"></div>
     </div>
     <div style="position: relative" class="margin">
-      <img id="inputImg" src="" style="max-width: 800px;" />
+      <video src="bbt.mp4" id="inputVideo" autoplay muted loop playsinline></video>
       <canvas id="overlay" />
-    </div>
-
-    <div class="row side-by-side">
-      <!-- image_selection_control -->
-      <div id="selectList"></div>
-      <div class="row">
-        <label for="imgUrlInput">Get image from URL:</label>
-        <input id="imgUrlInput" type="text" class="bold">
-      </div>
-      <button
-        class="waves-effect waves-light btn"
-        onclick="loadImageFromUrl()"
-      >
-        Ok
-      </button>
-      <input id="queryImgUploadInput" type="file" class="waves-effect btn bold" onchange="loadImageFromUpload()" accept=".jpg, .jpeg, .png">
-      <!-- image_selection_control -->
     </div>
 
     <div class="row side-by-side">
@@ -44,12 +26,32 @@
       <!-- face_detector_selection_control -->
       <div id="face_detector_selection_control" class="row input-field" style="margin-right: 20px;">
         <select id="selectFaceDetector">
-          <option value="ssd_mobilenetv1">MTCNN</option>
-          <option value="tiny_face_detector">Dlib</option>
+          <option value="ssd_mobilenetv1">SSD Mobilenet V1</option>
+          <option value="tiny_face_detector">Tiny Face Detector</option>
         </select>
         <label>Select Face Detector</label>
       </div>
       <!-- face_detector_selection_control -->
+
+      <!-- check boxes -->
+      <div class="row" style="width: 220px;">
+        <input type="checkbox" id="withFaceLandmarksCheckbox" onchange="onChangeWithFaceLandmarks(event)" />
+        <label for="withFaceLandmarksCheckbox">Detect Face Landmarks</label>
+        <input type="checkbox" id="hideBoundingBoxesCheckbox" onchange="onChangeHideBoundingBoxes(event)" />
+        <label for="hideBoundingBoxesCheckbox">Hide Bounding Boxes</label>
+      </div>
+      <!-- check boxes -->
+
+      <!-- fps_meter -->
+      <div id="fps_meter" class="row side-by-side">
+        <div>
+          <label for="time">Time:</label>
+          <input disabled value="-" id="time" type="text" class="bold">
+          <label for="fps">Estimated Fps:</label>
+          <input disabled value="-" id="fps" type="text" class="bold">
+        </div>
+      </div>
+      <!-- fps_meter -->
 
     </div>
 
@@ -114,32 +116,71 @@
   </body>
 
   <script>
-    async function updateResults() {
-      if (!isFaceDetectionModelLoaded()) {
-        return
-      }
+    let forwardTimes = []
+    let withFaceLandmarks = false
+    let withBoxes = true
 
-      const inputImgEl = $('#inputImg').get(0)
+    function onChangeWithFaceLandmarks(e) {
+      withFaceLandmarks = $(e.target).prop('checked')
+    }
+
+    function onChangeHideBoundingBoxes(e) {
+      withBoxes = !$(e.target).prop('checked')
+    }
+
+    function updateTimeStats(timeInMs) {
+      forwardTimes = [timeInMs].concat(forwardTimes).slice(0, 30)
+      const avgTimeInMs = forwardTimes.reduce((total, t) => total + t) / forwardTimes.length
+      $('#time').val(`${Math.round(avgTimeInMs)} ms`)
+      $('#fps').val(`${faceapi.utils.round(1000 / avgTimeInMs)}`)
+    }
+
+    async function onPlay(videoEl) {
+      if(!videoEl.currentTime || videoEl.paused || videoEl.ended || !isFaceDetectionModelLoaded())
+        return setTimeout(() => onPlay(videoEl))
+
+
       const options = getFaceDetectorOptions()
 
-      const results = await faceapi.detectAllFaces(inputImgEl, options)
+      const ts = Date.now()
+
+      const drawBoxes = withBoxes
+      const drawLandmarks = withFaceLandmarks
+
+      let task = faceapi.detectAllFaces(videoEl, options)
+      task = withFaceLandmarks ? task.withFaceLandmarks() : task
+      const results = await task
+
+      updateTimeStats(Date.now() - ts)
 
       const canvas = $('#overlay').get(0)
-      faceapi.matchDimensions(canvas, inputImgEl)
-      faceapi.draw.drawDetections(canvas, faceapi.resizeResults(results, inputImgEl))
+      const dims = faceapi.matchDimensions(canvas, videoEl, true)
+
+      const resizedResults = faceapi.resizeResults(results, dims)
+      if (drawBoxes) {
+        faceapi.draw.drawDetections(canvas, resizedResults)
+      }
+      if (drawLandmarks) {
+        faceapi.draw.drawFaceLandmarks(canvas, resizedResults)
+      }
+
+      setTimeout(() => onPlay(videoEl))
     }
 
     async function run() {
-      // load face detection
-      await changeFaceDetector(SSD_MOBILENETV1)
+      // load face detection and face landmark models
+      await changeFaceDetector(TINY_FACE_DETECTOR)
+      await faceapi.loadFaceLandmarkModel('/')
+      changeInputSize(416)
 
-      // start processing image
-      updateResults()
+      // start processing frames
+      onPlay($('#inputVideo').get(0))
     }
 
+    function updateResults() {}
+
     $(document).ready(function() {
-      renderNavBar('#navbar', 'face_detection')
-      initImageSelectionControls()
+      renderNavBar('#navbar', 'video_face_tracking')
       initFaceDetectionControls()
       run()
     })

@@ -28,10 +28,10 @@ function renderNavBar(navbarId, exampleUri) {
       uri: 'face_detection',
       name: 'Face Detection'
     },
-    // {
-    //   uri: 'face_landmark_detection',
-    //   name: 'Face Landmark Detection'
-    // },
+    {
+      uri: 'face_landmark_detection',
+      name: 'Face Landmark Detection'
+    },
     // {
     //   uri: 'face_expression_recognition',
     //   name: 'Face Expression Recognition'
@@ -52,10 +52,10 @@ function renderNavBar(navbarId, exampleUri) {
     //   uri: 'video_face_tracking',
     //   name: 'Video Face Tracking'
     // },
-    // {
-    //   uri: 'webcam_face_detection',
-    //   name: 'Webcam Face Detection'
-    // },
+    {
+      uri: 'webcam_face_detection',
+      name: 'Webcam Face Detection'
+    },
     // {
     //   uri: 'webcam_face_landmark_detection',
     //   name: 'Webcam Face Landmark Detection'

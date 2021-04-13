@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <script src="js/face-api.js"></script>
+  <script src="face-api.js"></script>
   <script src="js/commons.js"></script>
   <script src="js/faceDetectionControls.js"></script>
   <script src="js/imageSelectionControls.js"></script>
@@ -50,6 +50,13 @@
         <label>Select Face Detector</label>
       </div>
       <!-- face_detector_selection_control -->
+
+      <!-- check boxes -->
+      <div class="row" style="width: 220px;">
+        <input type="checkbox" id="hideBoundingBoxesCheckbox" onchange="onChangeHideBoundingBoxes(event)" />
+        <label for="hideBoundingBoxesCheckbox">Hide Bounding Boxes</label>
+      </div>
+      <!-- check boxes -->
 
     </div>
 
@@ -114,6 +121,13 @@
   </body>
 
   <script>
+    let withBoxes = true
+
+    function onChangeHideBoundingBoxes(e) {
+      withBoxes = !$(e.target).prop('checked')
+      updateResults()
+    }
+
     async function updateResults() {
       if (!isFaceDetectionModelLoaded()) {
         return
@@ -122,23 +136,29 @@
       const inputImgEl = $('#inputImg').get(0)
       const options = getFaceDetectorOptions()
 
-      const results = await faceapi.detectAllFaces(inputImgEl, options)
+      const results = await faceapi.detectAllFaces(inputImgEl, options).withFaceLandmarks()
 
       const canvas = $('#overlay').get(0)
       faceapi.matchDimensions(canvas, inputImgEl)
-      faceapi.draw.drawDetections(canvas, faceapi.resizeResults(results, inputImgEl))
+      const resizedResults = faceapi.resizeResults(results, inputImgEl)
+
+      if (withBoxes) {
+        faceapi.draw.drawDetections(canvas, resizedResults)
+      }
+      faceapi.draw.drawFaceLandmarks(canvas, resizedResults)
     }
 
     async function run() {
-      // load face detection
+      // load face detection and face landmark models
       await changeFaceDetector(SSD_MOBILENETV1)
+      await faceapi.loadFaceLandmarkModel('/')
 
       // start processing image
       updateResults()
     }
 
     $(document).ready(function() {
-      renderNavBar('#navbar', 'face_detection')
+      renderNavBar('#navbar', 'face_landmark_detection')
       initImageSelectionControls()
       initFaceDetectionControls()
       run()

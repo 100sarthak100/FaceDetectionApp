@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <script src="js/face-api.js"></script>
+  <script src="face-api.js"></script>
   <script src="js/commons.js"></script>
   <script src="js/faceDetectionControls.js"></script>
   <script src="js/imageSelectionControls.js"></script>
@@ -44,8 +44,8 @@
       <!-- face_detector_selection_control -->
       <div id="face_detector_selection_control" class="row input-field" style="margin-right: 20px;">
         <select id="selectFaceDetector">
-          <option value="ssd_mobilenetv1">MTCNN</option>
-          <option value="tiny_face_detector">Dlib</option>
+          <option value="ssd_mobilenetv1">SSD Mobilenet V1</option>
+          <option value="tiny_face_detector">Tiny Face Detector</option>
         </select>
         <label>Select Face Detector</label>
       </div>
@@ -114,6 +114,9 @@
   </body>
 
   <script>
+
+    let thresh = 0.1
+
     async function updateResults() {
       if (!isFaceDetectionModelLoaded()) {
         return
@@ -123,23 +126,32 @@
       const options = getFaceDetectorOptions()
 
       const results = await faceapi.detectAllFaces(inputImgEl, options)
+        // compute face landmarks to align faces for better accuracy
+        .withFaceLandmarks()
+        .withFaceExpressions()
 
       const canvas = $('#overlay').get(0)
       faceapi.matchDimensions(canvas, inputImgEl)
-      faceapi.draw.drawDetections(canvas, faceapi.resizeResults(results, inputImgEl))
+
+      const resizedResults = faceapi.resizeResults(results, inputImgEl)
+      const minConfidence = 0.05
+      faceapi.draw.drawDetections(canvas, resizedResults)
+      faceapi.draw.drawFaceExpressions(canvas, resizedResults, minConfidence)
     }
 
     async function run() {
-      // load face detection
+      // load face detection and face expression recognition models
+      // and load face landmark model for face alignment
       await changeFaceDetector(SSD_MOBILENETV1)
-
+      await faceapi.loadFaceLandmarkModel('/')
+      await faceapi.loadFaceExpressionModel('/')
       // start processing image
       updateResults()
     }
 
     $(document).ready(function() {
-      renderNavBar('#navbar', 'face_detection')
-      initImageSelectionControls()
+      renderNavBar('#navbar', 'face_expression_recognition')
+      initImageSelectionControls('happy.jpg', true)
       initFaceDetectionControls()
       run()
     })
