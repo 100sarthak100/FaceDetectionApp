@@ -1,6 +1,7 @@
 const SSD_MOBILENETV1 = 'ssd_mobilenetv1'
 const TINY_FACE_DETECTOR = 'tiny_face_detector'
-
+const SSD_MOBILENETV1_2 = 'ssd_mobilenetv1_2'
+const TINY_FACE_DETECTOR_2 = 'tiny_face_detector_2'
 
 let selectedFaceDetector = SSD_MOBILENETV1
 
@@ -9,7 +10,7 @@ let minConfidence = 0.5
 
 // tiny_face_detector options
 let inputSize = 512
-let scoreThreshold = 0.5
+let scoreThreshold = 0.4
 
 function getFaceDetectorOptions() {
   return selectedFaceDetector === SSD_MOBILENETV1
@@ -69,6 +70,12 @@ function getCurrentFaceDetectionNet() {
     return faceapi.nets.ssdMobilenetv1
   }
   if (selectedFaceDetector === TINY_FACE_DETECTOR) {
+    return faceapi.nets.tinyFaceDetector
+  }
+  if (selectedFaceDetector === SSD_MOBILENETV1_2) {
+    return faceapi.nets.ssdMobilenetv1
+  }
+  if (selectedFaceDetector === TINY_FACE_DETECTOR_2) {
     return faceapi.nets.tinyFaceDetector
   }
 }

@@ -44,10 +44,10 @@ function renderNavBar(navbarId, exampleUri) {
     //   uri: 'face_recognition',
     //   name: 'Face Recognition'
     // },
-    // {
-    //   uri: 'face_extraction',
-    //   name: 'Face Extraction'
-    // },
+    {
+      uri: 'face_extraction',
+      name: 'Face Extraction'
+    },
     // {
     //   uri: 'video_face_tracking',
     //   name: 'Video Face Tracking'
